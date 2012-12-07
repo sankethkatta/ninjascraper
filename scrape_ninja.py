@@ -1,30 +1,26 @@
 import urllib2, urllib, bs4
 import sys
 import traceback
-import collections.defaultdict as defaultdict
+import collections 
 def is_semester(string):
     return "Fall " in string or "Spring " in string or "Summer " in string 
 
 def scrape_hkn(abv="CS",course="70"):
-    prof_year = {} 
+    prof_year = collections.defaultdict(list) 
     html = urllib2.urlopen("https://hkn.eecs.berkeley.edu/coursesurveys/course/{0}/{1}".format(abv,course))
     soup = bs4.BeautifulSoup(html) 
     tables = soup.find_all("table")[1] 
     links = tables.find_all("a") 
     current_semester = "" 
-    current_elem = [] 
     for link in links:
         text = str(link.text)
         if is_semester(text):
-            if current_semester:
-                prof_year[current_semester] = current_elem
-                current_elem = [] 
             current_semester = text 
         else:
-            current_elem.append(text) 
-    prof_year[current_semester] = current_elem
-    
+            prof_year[current_semester].append(text) 
+    prof_year[current_semester].append(text)
     return prof_year 
+
 ways = ["","(solution)","solution"] 
 
 def scrape_ninja(course="70",test="Midterm 1",department="COMPSCI",abv="CS"):
