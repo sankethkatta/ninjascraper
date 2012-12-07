@@ -2,6 +2,10 @@ import urllib2, urllib, bs4
 import sys
 import traceback
 import collections 
+import shelve
+
+cached = shelve.open("cached")
+
 def is_semester(string):
     return "Fall " in string or "Spring " in string or "Summer " in string 
 
@@ -19,12 +23,18 @@ def scrape_hkn(abv="CS",course="70"):
         else:
             prof_year[current_semester].append(text) 
     prof_year[current_semester].append(text)
+    cached[abv+course] = prof_year
+    cached.sync()
+    print prof_year
     return prof_year 
 
 ways = ["","(solution)","solution"] 
 
 def scrape_ninja(course="70",test="Midterm 1",department="COMPSCI",abv="CS"):
-    prof_year = scrape_hkn(abv,course)
+    if abv+course in cached:
+        prof_year = cached[abv+course]
+    else:
+        prof_year = scrape_hkn(abv,course)
     base_url = "http://media.ninjacourses.com/var/exams/1/{0}/{1}%20{2}%20-%20{3}%20{4}%20-%20{5}%20-%20{6}%20{7}.pdf" 
     exists = {}  
     for semester,profs in prof_year.iteritems():
@@ -45,10 +55,12 @@ def scrape_ninja(course="70",test="Midterm 1",department="COMPSCI",abv="CS"):
                                 url = url[:-4] + "%20"+way + url[-4:] 
 
                         urllib2.urlopen(url) 
+                        print "Found at: %s" % url
                         exists[str(profs + [test,way])+" "+semester ] = url
                     except Exception as e:
                         print e  
-                        traceback.print_exc()
+                        print "Not found at %s" % url
+                        #traceback.print_exc()
                         pass
     for info,url in exists.iteritems():
         print url
